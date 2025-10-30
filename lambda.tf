@@ -32,10 +32,10 @@ resource "aws_iam_policy" "lambda_s3_policy" {
           "s3:PutObject"
         ]
         Resource = [
-          "arn:aws:s3:::bigdata-youtube-cleansed",
-          "arn:aws:s3:::bigdata-youtube-cleansed/*",
-          "arn:aws:s3:::projectyoutubedata",
-          "arn:aws:s3:::projectyoutubedata/*" 
+          aws_s3_bucket.bigdata_youtube_cleansed.arn,
+          "${aws_s3_bucket.bigdata_youtube_cleansed.arn}/*",
+          aws_s3_bucket.projectyoutubedata.arn,
+          "${aws_s3_bucket.projectyoutubedata.arn}/*" 
         ]
       },
       # CloudWatch Logging Permissions
@@ -75,8 +75,8 @@ resource "aws_iam_policy" "lambda_glue_policy" {
         ]
         Resource = [
           "arn:aws:glue:*:*:catalog",
-          "arn:aws:glue:*:*:database/db-youtube-cleansed",
-          "arn:aws:glue:*:*:table/db-youtube-cleansed/*"
+          "arn:aws:glue:*:*:database/db_youtube_raw",
+          "arn:aws:glue:*:*:table/db_youtube_raw/*"
         ]
       }
     ]
@@ -96,19 +96,22 @@ resource "aws_iam_role_policy_attachment" "lambda_glue_attach" {
 resource "aws_lambda_function" "bigdata_lambda" {
   function_name = "bigdata-youtube-json-parquet-lamda-fn"
   role          = aws_iam_role.lambda_role.arn
-  runtime       = "python3.8"
+  runtime       = "python3.12"
   handler       = "lambda_function.lambda_handler"
+  timeout       = 300
+  memory_size   = 512
 
-  filename         = "C:\\Users\\bhanu\\Documents\\lambda_package\\lambda_function.zip" 
-  source_code_hash = filebase64sha256("C:\\Users\\bhanu\\Documents\\lambda_package\\lambda_function.zip")
+  filename         = "lambda_function.py"
+  source_code_hash = filebase64sha256("lambda_function.py")
 
+  layers = ["arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:13"]
 
   environment {
     variables = {
-      BUCKET_NAME                  = "bigdata-youtube-cleansed"
-      s3_cleansed_layer            = "s3://bigdata-youtube-cleansed/projectyoutubedata/cleansed_statistics_reference_data/"
-      glue_catalog_db_name         = "db-youtube-cleansed"
-      glue_catalog_table_name      = "cleansed_statistics_reference_data_"
+      BUCKET_NAME                  = aws_s3_bucket.bigdata_youtube_cleansed.bucket
+      s3_cleansed_layer            = "s3://${aws_s3_bucket.bigdata_youtube_cleansed.bucket}/projectyoutubedata/cleansed_statistics_reference_data/"
+      glue_catalog_db_name         = "db_youtube_raw"
+      glue_catalog_table_name      = "raw_statistics"
       write_data_operation         = "append"
     }
   }

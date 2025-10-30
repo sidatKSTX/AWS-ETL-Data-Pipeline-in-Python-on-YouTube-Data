@@ -1,12 +1,16 @@
 resource "aws_s3_bucket" "bigdata_youtube_cleansed" {
-  bucket = "bigdata-youtube-cleansed"
+  bucket        = "bigdata-youtube-cleansed-${random_id.suffix.hex}"
+  force_destroy = true
   
   tags = {
     "youtube" = "true"
   }
+}
 
-  versioning {
-    enabled = true
+resource "aws_s3_bucket_versioning" "bigdata_youtube_cleansed_versioning" {
+  bucket = aws_s3_bucket.bigdata_youtube_cleansed.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 resource "aws_iam_policy" "bigdata_youtube_read_write_s3_policy" {
@@ -25,12 +29,12 @@ resource "aws_iam_policy" "bigdata_youtube_read_write_s3_policy" {
           "s3:GetObject"
         ]
         Resource = [
-          "arn:aws:s3:::bigdata-youtube-cleansed",
-          "arn:aws:s3:::bigdata-youtube-cleansed/*",
-          "arn:aws:s3:::projectyoutubedata",  
-          "arn:aws:s3:::projectyoutubedata/*",
-          "arn:aws:s3:::projectyoutubedataanalytics",
-          "arn:aws:s3:::projectyoutubedataanalytics/*"
+          aws_s3_bucket.bigdata_youtube_cleansed.arn,
+          "${aws_s3_bucket.bigdata_youtube_cleansed.arn}/*",
+          "arn:aws:s3:::projectyoutubedata-${random_id.suffix.hex}",  
+          "arn:aws:s3:::projectyoutubedata-${random_id.suffix.hex}/*",
+          "arn:aws:s3:::projectyoutubedataanalytics-${random_id.suffix.hex}",
+          "arn:aws:s3:::projectyoutubedataanalytics-${random_id.suffix.hex}/*"
         ]
       },
       # Write Permissions: PutObject and DeleteObject
@@ -41,17 +45,16 @@ resource "aws_iam_policy" "bigdata_youtube_read_write_s3_policy" {
           "s3:DeleteObject"
         ]
         Resource = [
-          "arn:aws:s3:::bigdata-youtube-cleansed/*",
-          "arn:aws:s3:::projectyoutubedata/*"  
+          "${aws_s3_bucket.bigdata_youtube_cleansed.arn}/*",
+          "arn:aws:s3:::projectyoutubedata-${random_id.suffix.hex}/*"  
         ]
       }
     ]
   })
 }
 resource "aws_s3_object" "raw_statistics_folder" {
-  bucket = "bigdata-youtube-cleansed"
+  bucket = aws_s3_bucket.bigdata_youtube_cleansed.bucket
   key    = "projectyoutubedata/raw_statistics/.keep"
-  acl    = "private"
 
   depends_on = [aws_s3_bucket.bigdata_youtube_cleansed]
 }

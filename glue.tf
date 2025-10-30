@@ -40,15 +40,12 @@ resource "aws_iam_policy" "bigdata_youtube_policy" {
         "s3:DeleteObject"
       ],
       "Resource": [
-        "arn:aws:s3:::projectyoutubedata",
-        "arn:aws:s3:::projectyoutubedata/*",
-        "arn:aws:s3:::bigdata-youtube-cleansed",
-        "arn:aws:s3:::bigdata-youtube-cleansed/*",
-        "arn:aws:s3:::bigdata-youtube-assets-unique-1234",
-        "arn:aws:s3:::bigdata-youtube-assets-unique-1234/*",
-        "arn:aws:s3:::projectyoutubedataanalytics",
-        "arn:aws:s3:::projectyoutubedataanalytics/*"
-
+        "${aws_s3_bucket.projectyoutubedata.arn}",
+        "${aws_s3_bucket.projectyoutubedata.arn}/*",
+        "${aws_s3_bucket.bigdata_youtube_cleansed.arn}",
+        "${aws_s3_bucket.bigdata_youtube_cleansed.arn}/*",
+        "${aws_s3_bucket.projectyoutubedataanalytics.arn}",
+        "${aws_s3_bucket.projectyoutubedataanalytics.arn}/*"
       ]
     }
   ]
@@ -78,7 +75,7 @@ resource "aws_glue_crawler" "bigdata_youtube_glue_crawler" {
   database_name = aws_glue_catalog_database.db_youtube_raw.name
 
   s3_target {
-    path = "s3://projectyoutubedata/raw_statistics_reference_data/"
+    path = "s3://${aws_s3_bucket.projectyoutubedata.bucket}/raw_statistics_reference_data/"
   }
 
   tags = {
@@ -92,7 +89,7 @@ resource "aws_glue_crawler" "bigdata_youtube_glue_crawler2" {
   database_name = aws_glue_catalog_database.db_youtube_raw.name
 
   s3_target {
-    path = "s3://projectyoutubedata/raw_statistics/"
+    path = "s3://${aws_s3_bucket.projectyoutubedata.bucket}/raw_statistics/"
   }
 
   tags = {
@@ -124,7 +121,7 @@ resource "aws_glue_trigger" "crawler_trigger_2" {
   depends_on = [aws_glue_crawler.bigdata_youtube_glue_crawler2]
 }
 resource "aws_glue_catalog_database" "db_youtube_cleansed" {
-  name = "db-youtube-cleansed"
+  name = "db-youtube-cleansed-${random_id.suffix.hex}"
 }
 
 resource "aws_glue_crawler" "bigdata_youtube_cleansed_glue_crawler3" {
@@ -133,7 +130,7 @@ resource "aws_glue_crawler" "bigdata_youtube_cleansed_glue_crawler3" {
   database_name = aws_glue_catalog_database.db_youtube_cleansed.name
 
   s3_target {
-    path = "s3://bigdata-youtube-cleansed/projectyoutubedata/raw_statistics/"
+    path = "s3://${aws_s3_bucket.bigdata_youtube_cleansed.bucket}/projectyoutubedata/raw_statistics/"
   }
 
   tags = {
